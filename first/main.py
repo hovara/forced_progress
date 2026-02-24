@@ -250,6 +250,26 @@ class Player:
             rlc.DrawRectangleV(
                 Vec2(self.pos.x + 3, self.pos.y - 8)(), Vec2(0.5, 10)(), rlc.DARKBROWN
             )
+            fish_tip = Vec2(self.pos.x + 3.25, self.pos.y - 8)
+
+            # fishing line
+            rlc.DrawCircleV(fish_tip(), 0.5, rlc.BROWN)
+            if self.state == FISHING:
+                line_points = 20
+                line_coords = []
+                for i in range(line_points):
+                    T = 1 / (line_points - 1) * i
+                    line_coords.append(
+                        rlc.GetSplinePointLinear(
+                            fish_tip(),
+                            (self.fish_lure_pos * BSIZE + Vec2(BSIZE / 2, BSIZE / 2))(),
+                            T,
+                        )
+                    )
+                    # if i not in (0, line_points - 1):
+                    #     line_coords[-1].y -= 30 * ((T - 0.5) ** 2)
+                    line_coords[-1].y -= 60 * ((T - 0.5) ** 2) - 15
+                rlc.DrawSplineLinear(line_coords, line_points, 0.5, rlc.BLACK)
 
     def draw_stats(self):
         # items quantity
