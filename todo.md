@@ -1,4 +1,4 @@
-# TODO list
+# TODO list ~~  ~~> **./first/** = (top down island survival)
 
 - [ ] Upgrade the fishing system
   - [ ] Implement fishing bobber
