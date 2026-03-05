@@ -1,9 +1,9 @@
 # TODO list &rarr; **./first/** = (top down island survival)
 
 - [ ] Upgrade the fishing system
-  - [ ] Implement fishing bobber
-    - [ ] Implement the bobber drawing
-    - [ ] Implement bobber animation
+  - [x] Implement fishing bobber
+    - [x] Implement the bobber drawing
+    - [x] Implement bobber animation
   - [ ] Implement fish class / enum
     - [ ] At least three fish types
   - [ ] Move the current "fishing system" after the "fish caught" action
