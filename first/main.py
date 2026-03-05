@@ -122,21 +122,31 @@ class World:
 
                 elif self.blocks[y][x] == Block.FISH_LURE:
                     rlc.DrawRectangle(x * BSIZE, y * BSIZE, BSIZE, BSIZE, rlc.BLUE)
+
                     rlc.DrawCircleV(
                         Vec2(x * BSIZE + BSIZE / 2, y * BSIZE + BSIZE / 2)(),
-                        BSIZE / 2,
-                        rlc.WHITE,
+                        1.7,
+                        rlc.Fade(rlc.WHITE, 0.8),
                     )
 
 
+class FanMenu:
+    pass
+
+
 class FishingManager:
-    TIME_LIMIT = 3
     BASE_ANGULAR_SPEED = 300
 
     def __init__(self):
+        self.time_limit = random.randint(4, 7)
         self.timer = 0.0
         self.lure_pos = Vec2(0, 0)
+        self.fish_hooked = False
         self.fish = 0
+
+        self.wave_size = BSIZE / 8
+        self.bobber_sink = 0
+        self.sink_dir = 1
 
         # do i need to put these here???
         self.target_segment = 1
@@ -152,27 +162,54 @@ class FishingManager:
         self.start_target = self.target_segment * 20
         self.end_target = self.start_target + 20
 
+    def set_time_limit(self):
+        self.time_limit = random.randint(4, 7)
+        print(self.time_limit, type(self.time_limit))
+
     def pull_fish(self):
         if self.curr_angle >= self.start_target and self.curr_angle <= self.end_target:
             self.fish += 1
-        self.timer = self.TIME_LIMIT
+        if self.fish_hooked:
+            self.fish += 1
+        self.timer = self.time_limit
+        self.fish_hooked = False
+        self.bobber_sink = 0
 
     def update(self, player, world):
         self.timer += rlc.GetFrameTime()
+        if self.timer >= self.time_limit:
+            self.timer = 0
+            player.state = State.MOVING
+            world.blocks[int(self.lure_pos.y)][int(self.lure_pos.x)] = Block.WATER
+            self.lure_pos = Vec2(0, 0)
+            self.wave_size = BSIZE / 8
+            self.curr_speed = self.BASE_ANGULAR_SPEED
+            self.fish_hooked = False
+            self.bobber_sink = 0
+            return
+        elif not self.fish_hooked and self.timer >= self.time_limit - 0.66:
+            self.fish_hooked = True
+            self.wave_size = BSIZE / 8
+
+        # update wave size
+        self.wave_size = min(BSIZE / 2, self.wave_size + rlc.GetFrameTime())
+
+        sink_speed = 0.25
+        if not self.fish_hooked:
+            self.bobber_sink += rlc.GetFrameTime() * self.sink_dir * sink_speed
+        else:
+            self.bobber_sink = 1
+
+        max_sink = 0.25
+        if self.bobber_sink >= max_sink or self.bobber_sink <= 0:
+            self.sink_dir *= -1
 
         self.curr_angle += self.dir * self.curr_speed * rlc.GetFrameTime()
         if self.curr_angle <= 0 or self.curr_angle >= 180:
             self.dir *= -1
             self.curr_speed += self.curr_speed * 0.2
 
-        if self.timer >= self.TIME_LIMIT:
-            self.timer = 0
-            player.state = State.MOVING
-            world.blocks[int(self.lure_pos.y)][int(self.lure_pos.x)] = Block.WATER
-            self.lure_pos = Vec2(0, 0)
-            self.curr_speed = self.BASE_ANGULAR_SPEED
-
-    def draw(self):
+    def _draw_indicator(self):
         # indicator bg
         outer_radius = WINDOW_WIDTH / 2 - 100
         center = Vec2(WINDOW_WIDTH // 2, WINDOW_HEIGHT - outer_radius)
@@ -217,6 +254,60 @@ class FishingManager:
             segments,
             rlc.Fade(rlc.MAROON, 0.5),
         )
+
+    def _draw_waves(self, center, state):
+        if state == State.FISHING:
+            fade = 1 - self.wave_size / (BSIZE / 2) + 0.15
+            rlc.DrawCircleV(center(), self.wave_size, rlc.Fade(rlc.BLUE, fade))
+            rlc.DrawCircleV(center(), self.wave_size * 0.8, rlc.Fade(rlc.SKYBLUE, fade))
+            rlc.DrawCircleV(center(), self.wave_size * 0.6, rlc.Fade(rlc.BLUE, fade))
+            rlc.DrawCircleV(center(), self.wave_size * 0.4, rlc.Fade(rlc.SKYBLUE, fade))
+            rlc.DrawCircleV(center(), self.wave_size * 0.2, rlc.Fade(rlc.BLUE, fade))
+            rlc.DrawCircleV(center(), self.wave_size * 0.1, rlc.Fade(rlc.SKYBLUE, fade))
+
+    def draw_bobber(self, center, state):
+        self._draw_waves(center, state)
+        rlc.DrawCircleV(center(), 1 - self.bobber_sink, rlc.RED)
+        offset = Vec2(0, 0) if state == State.FISHING else Vec2(0, -1)
+        rlc.DrawCircleV((center + offset)(), 0.4, rlc.WHITE)
+
+    def draw(self, pos, state):
+        fishing_rod_body = Vec2(pos.x + 3, pos.y - 8)
+        fishing_rod_tip = Vec2(pos.x + 3.25, pos.y - 8)
+        bobber_pos = (
+            fishing_rod_tip + Vec2(0.5, 2)
+            if state == State.MOVING
+            else self.lure_pos * BSIZE + BSIZE / 2
+        )
+
+        # draw fishing bobber
+        self.draw_bobber(bobber_pos, state)
+
+        # draw fishing rod
+        rlc.DrawRectangleV(fishing_rod_body(), Vec2(0.5, 10)(), rlc.DARKBROWN)
+        rlc.DrawCircleV(fishing_rod_tip(), 0.5, rlc.BROWN)
+
+        # draw fishing line
+        if state == State.FISHING:
+            # if state == CAUGHT_FISH:
+            #     self._draw_indicator()
+            line_points = 20
+            line_coords = []
+            for i in range(line_points):
+                T = 1 / (line_points - 1) * i
+                line_coords.append(
+                    rlc.GetSplinePointLinear(
+                        fishing_rod_tip(),
+                        (self.lure_pos * BSIZE + Vec2(BSIZE / 2, BSIZE / 2))(),
+                        T,
+                    )
+                )
+                line_coords[-1].y -= 60 * ((T - 0.5) ** 2) - 15
+            rlc.DrawSplineLinear(line_coords, line_points, 0.2, rlc.BLACK)
+        elif state == State.MOVING:
+            rlc.DrawLineEx(
+                fishing_rod_tip(), (bobber_pos - Vec2(0, 1))(), 0.2, rlc.BLACK
+            )
 
 
 class Player:
@@ -312,7 +403,9 @@ class Player:
                 self.state = State.FISHING
                 world.blocks[W_y][W_x] = Block.FISH_LURE
                 self.fishing.lure_pos = Vec2(W_x, W_y)
+                self.fishing.bobber_sink = 0
                 self.fishing.set_target()
+                self.fishing.set_time_limit()
         elif (
             rlc.IsMouseButtonPressed(rlc.MOUSE_BUTTON_LEFT)
             and self.state == State.FISHING
@@ -327,6 +420,7 @@ class Player:
             #     return "You need more wood to build FIRE!"
 
     def draw(self):
+
         # body
         rlc.DrawCircleV(self.pos(), 2, rlc.RED)
         # head
@@ -346,30 +440,7 @@ class Player:
                 rlc.GRAY,
             )
         elif self.tool == Tool.FISHING_ROD:
-            rlc.DrawRectangleV(
-                Vec2(self.pos.x + 3, self.pos.y - 8)(), Vec2(0.5, 10)(), rlc.DARKBROWN
-            )
-            fish_tip = Vec2(self.pos.x + 3.25, self.pos.y - 8)
-
-            # fishing line
-            rlc.DrawCircleV(fish_tip(), 0.5, rlc.BROWN)
-            if self.state == State.FISHING:
-                line_points = 20
-                line_coords = []
-                for i in range(line_points):
-                    T = 1 / (line_points - 1) * i
-                    line_coords.append(
-                        rlc.GetSplinePointLinear(
-                            fish_tip(),
-                            (
-                                self.fishing.lure_pos * BSIZE
-                                + Vec2(BSIZE / 2, BSIZE / 2)
-                            )(),
-                            T,
-                        )
-                    )
-                    line_coords[-1].y -= 60 * ((T - 0.5) ** 2) - 15
-                rlc.DrawSplineLinear(line_coords, line_points, 0.5, rlc.BLACK)
+            self.fishing.draw(self.pos, self.state)
 
     def draw_stats(self):
         # items quantity
@@ -432,8 +503,6 @@ def main():
         rlc.EndMode2D()
 
         player.draw_stats()
-        if player.state == State.FISHING:
-            player.fishing.draw()
 
         rlc.EndDrawing()
     rlc.CloseWindow()
