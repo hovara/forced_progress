@@ -66,6 +66,19 @@ class State(Enum):
     FISHING = 2
 
 
+class FishType(Enum):
+    SURGEONFISH = 0
+    CLOWNFISH = 1
+    CRAB = 2
+    PUFFERFISH = 3
+    ANCHOVY = 4
+    ANGELFISH = 5
+    BASS = 6
+    CATFISH = 7
+    GOLDFISH = 8
+    TROUT = 9
+
+
 class World:
     def __init__(self):
         self.size = Vec2(100, 100)
