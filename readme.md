@@ -4,8 +4,8 @@
   - [x] Implement fishing bobber
     - [x] Implement the bobber drawing
     - [x] Implement bobber animation
-  - [ ] Implement fish class / enum
-    - [ ] At least three fish types
+  - [x] Implement fish enum
+    - [x] At least three fish types
   - [ ] Move the current "fishing system" after the "fish caught" action
     - [ ] Each segment will represent a different fish
     - [ ] Segment angle arc depends on fish rarity
