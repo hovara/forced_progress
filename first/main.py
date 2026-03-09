@@ -48,14 +48,6 @@ WINDOW_WIDTH = WINDOW_HEIGHT = 1000
 BSIZE = 10
 
 
-class Block(Enum):
-    SAND = 1
-    WATER = 2
-    TREE = 3
-    FIRE = 4
-    BOBBER = 5
-
-
 class Tool(Enum):
     AXE = 1
     FISHING_ROD = 2
@@ -79,11 +71,24 @@ class FishType(Enum):
     TROUT = 9
 
 
+class Block:
+    class Type(Enum):
+        SAND = 1
+        WATER = 2
+        TREE = 3
+        FIRE = 4
+        BOBBER = 5
+
+    def __init__(self, block_type, height):
+        self.type = block_type
+        self.height = height
+
+
 class World:
     def __init__(self):
         self.size = Vec2(100, 100)
         self.blocks = [
-            [Block.WATER for _ in range(int(self.size.x))]
+            [Block(Block.Type.WATER, 0) for _ in range(int(self.size.x))]
             for _ in range(int(self.size.y))
         ]
         self.island_size = self.size * 0.8
@@ -94,33 +99,33 @@ class World:
 
         for y in range(start_pos, end_pos):
             for x in range(start_pos, end_pos):
-                self.blocks[y][x] = Block.SAND
+                self.blocks[y][x] = Block(Block.Type.SAND, 0)
 
     def spawn_trees(self):
         for y in range(int(self.size.y)):
             for x in range(int(self.size.x)):
-                if self.blocks[y][x] != Block.SAND:
+                if self.blocks[y][x].type != Block.Type.SAND:
                     continue
-                self.blocks[y][x] = (
-                    Block.TREE if random.uniform(0, 1) < 0.03 else Block.SAND
+                self.blocks[y][x].type = (
+                    Block.Type.TREE if random.uniform(0, 1) < 0.03 else Block.Type.SAND
                 )
 
     def draw(self):
         for y in range(int(self.size.y)):
             for x in range(int(self.size.x)):
-                if self.blocks[y][x] == Block.SAND:
+                if self.blocks[y][x].type == Block.Type.SAND:
                     rlc.DrawRectangle(x * BSIZE, y * BSIZE, BSIZE, BSIZE, rlc.YELLOW)
 
-                elif self.blocks[y][x] == Block.WATER:
+                elif self.blocks[y][x].type == Block.Type.WATER:
                     rlc.DrawRectangle(x * BSIZE, y * BSIZE, BSIZE, BSIZE, rlc.BLUE)
 
-                elif self.blocks[y][x] == Block.TREE:
+                elif self.blocks[y][x].type == Block.Type.TREE:
                     self._draw_tree(x, y)
 
-                elif self.blocks[y][x] == Block.FIRE:
+                elif self.blocks[y][x].type == Block.Type.FIRE:
                     rlc.DrawRectangle(x * BSIZE, y * BSIZE, BSIZE, BSIZE, rlc.ORANGE)
 
-                elif self.blocks[y][x] == Block.BOBBER:
+                elif self.blocks[y][x].type == Block.Type.BOBBER:
                     rlc.DrawRectangle(x * BSIZE, y * BSIZE, BSIZE, BSIZE, rlc.BLUE)
 
     def _draw_tree(self, x, y):
@@ -233,7 +238,9 @@ class FishingManager:
             self.timer = self.time_limit
 
     def _reset_bobber(self, world):
-        world.blocks[int(self.bobber_pos.y)][int(self.bobber_pos.x)] = Block.WATER
+        world.blocks[int(self.bobber_pos.y)][
+            int(self.bobber_pos.x)
+        ].type = Block.Type.WATER
         self.bobber_pos = Vec2(0, 0)
         self.wave_size = BSIZE / 8
         self.fish_hooked = False
@@ -404,21 +411,22 @@ class Player:
             and self.state == State.MOVING
         ):
             # break tree
-            if world.blocks[W_y][W_x] == Block.TREE and self.tool == Tool.AXE:
+            if world.blocks[W_y][W_x].type == Block.Type.TREE and self.tool == Tool.AXE:
                 dx = (mpos.x - self.pos.x) ** 2
                 dy = (mpos.y - self.pos.y) ** 2
                 if math.sqrt(dx + dy) < 15:
-                    world.blocks[W_y][W_x] = Block.SAND
+                    world.blocks[W_y][W_x].type = Block.Type.SAND
                     self.wood += 1
                     self.sappling += 1 if random.uniform(0, 1) <= 0.33 else 0
                 # else:
                 #     return "You are too far from the tree!"
             # fishing
             elif (
-                world.blocks[W_y][W_x] == Block.WATER and self.tool == Tool.FISHING_ROD
+                world.blocks[W_y][W_x].type == Block.Type.WATER
+                and self.tool == Tool.FISHING_ROD
             ):
                 self.state = State.FISHING
-                world.blocks[W_y][W_x] = Block.BOBBER
+                world.blocks[W_y][W_x].type = Block.Type.BOBBER
                 self.fishing.bobber_pos = Vec2(W_x, W_y)
                 self.fishing._set_time_window()
         elif (
@@ -432,9 +440,9 @@ class Player:
                 self.fishing.pull_fish()
 
         if rlc.IsMouseButtonPressed(rlc.MOUSE_BUTTON_RIGHT):
-            if world.blocks[W_y][W_x] == Block.SAND and self.wood >= 50:
+            if world.blocks[W_y][W_x].type == Block.Type.SAND and self.wood >= 50:
                 self.wood -= 50
-                world.blocks[W_y][W_x] = Block.FIRE
+                world.blocks[W_y][W_x].type = Block.Type.FIRE
             # else:
             #     return "You need more wood to build FIRE!"
 

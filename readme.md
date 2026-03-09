@@ -1,7 +1,8 @@
 # TODO list &rarr; **./first/** = (top down island survival)
 
 - [ ] Upgrade World system
-  - [ ] Implement block height mechanic
+  - [x] Implement block height mechanic
+  - [ ] Upgrade world generation
 - [ ] Upgrade the fishing system
   - [x] Implement fishing bobber
     - [x] Implement the bobber drawing
