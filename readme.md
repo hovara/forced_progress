@@ -6,7 +6,7 @@
     - [x] Implement bobber animation
   - [x] Implement fish enum
     - [x] At least three fish types
-  - [ ] Move the current "fishing system" after the "fish caught" action
+  - [x] Move the current "fishing system" after the "fish caught" action
     - [ ] Each segment will represent a different fish
     - [ ] Segment angle arc depends on fish rarity
 - [ ] Implement fish cooking mechanic
