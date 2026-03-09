@@ -7,6 +7,7 @@
   - [x] Implement fish enum
     - [x] At least three fish types
   - [x] Move the current "fishing system" after the "fish caught" action
+    - [x] Rewrite the FanMenu() class to be modular (variable number of options)
     - [ ] Each segment will represent a different fish
     - [ ] Segment angle arc depends on fish rarity
 - [ ] Implement fish cooking mechanic
