@@ -4,6 +4,7 @@
   - [x] Implement block height mechanic
   - [ ] Upgrade world generation
 - [ ] Upgrade the fishing system
+  - [ ] Implement fishing throw animation
   - [x] Implement fishing bobber
     - [x] Implement the bobber drawing
     - [x] Implement bobber animation

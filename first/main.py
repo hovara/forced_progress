@@ -92,6 +92,8 @@ class World:
             for _ in range(int(self.size.y))
         ]
         self.island_size = self.size * 0.8
+        self.generate_island()
+        self.spawn_trees()
 
     def generate_island(self):
         start_pos = int((self.size.x - self.island_size.x) / 2)
@@ -515,8 +517,6 @@ class Player:
 def main():
     rlc.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, b"First")
     world = World()
-    world.generate_island()
-    world.spawn_trees()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
     while not rlc.WindowShouldClose():
