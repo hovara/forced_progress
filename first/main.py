@@ -174,6 +174,7 @@ class FanMenu:
     def update(self):
         self.curr_angle += self.dir * self.BASE_ANGULAR_SPEED * rlc.GetFrameTime()
         if self.curr_angle <= 0 or self.curr_angle >= 180:
+            self.curr_angle = min(180, max(0, self.curr_angle))
             self.dir *= -1
 
     def draw(self):
