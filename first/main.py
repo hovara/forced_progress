@@ -273,7 +273,7 @@ class FishingManager:
             max_sink = 0.25
             if self.bobber_sink >= max_sink or self.bobber_sink <= 0:
                 self.sink_dir *= -1
-        else:
+        elif self.bobber_sink != 1:
             self.bobber_sink = 1
 
     def _draw_waves(self, center, state):
