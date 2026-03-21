@@ -211,7 +211,7 @@ class FanMenu:
 
 class FishingManager:
     PULL_TIME = 0.66
-    FISHING_WINDOW = 7 - PULL_TIME
+    FISHING_WINDOW_START = 7 - PULL_TIME
     FISHING_MENU_TIME = 5
 
     def __init__(self):
@@ -230,7 +230,7 @@ class FishingManager:
 
     def _set_time_window(self):
         self.time_limit = random.randint(3, 6)
-        self.FISHING_WINDOW = self.time_limit - self.PULL_TIME
+        self.FISHING_WINDOW_START = self.time_limit - self.PULL_TIME
 
     def pull_fish(self):
         if self.fish_hooked:
@@ -258,7 +258,7 @@ class FishingManager:
             self.fish_menu.ON = False
             return
 
-        elif not self.fish_hooked and self.timer >= self.FISHING_WINDOW:
+        elif not self.fish_hooked and self.timer >= self.FISHING_WINDOW_START:
             self.fish_hooked = True
             self.wave_size = BSIZE / 8
 
@@ -269,12 +269,12 @@ class FishingManager:
         sink_speed = 0.25
         if not self.fish_hooked:
             self.bobber_sink += rlc.GetFrameTime() * self.sink_dir * sink_speed
+
+            max_sink = 0.25
+            if self.bobber_sink >= max_sink or self.bobber_sink <= 0:
+                self.sink_dir *= -1
         else:
             self.bobber_sink = 1
-
-        max_sink = 0.25
-        if self.bobber_sink >= max_sink or self.bobber_sink <= 0:
-            self.sink_dir *= -1
 
     def _draw_waves(self, center, state):
         if state == State.FISHING:
