@@ -2,7 +2,7 @@ import pyray as rl
 import raylib as rlc
 import math
 import random
-from enum import Enum
+from enum import Enum, auto
 
 
 class Vec2:
@@ -333,6 +333,116 @@ class FishingManager:
             )
 
 
+class ItemID(Enum):
+    # tools
+    AXE = 1
+    FISHING_ROD = 2
+    # fish
+    SURGEONFISH = 3
+    CLOWNFISH = 4
+    CRAB = 5
+    PUFFERFISH = 6
+    ANCHOVY = 7
+    ANGELFISH = 8
+    BASS = 9
+    CATFISH = 10
+    GOLDFISH = 11
+    TROUT = 12
+    # materials
+    WOOD = 13
+    SAPPLING = 14
+    # furniuture
+    FIRE = 15
+
+
+class Inventory:
+    class Slot:
+        def __init__(self, item=None, quantity=0):
+            self.item = item
+            self.quantity = quantity
+
+    SLOT_SIZE = Vec2(100, 100)
+
+    def __init__(self):
+        self.slots = [self.Slot() for _ in range(15)]
+        # temp
+        self.slots[1].item = ItemID.AXE
+        self.slots[0].item = ItemID.FISHING_ROD
+        self.selection = 0
+
+        self.ON = False
+
+    def update(self, player):
+        if rlc.IsKeyPressed(rlc.KEY_I):
+            self.ON = not self.ON
+
+        hotbar_selection = {
+            rlc.KEY_ONE: 0,
+            rlc.KEY_TWO: 1,
+            rlc.KEY_THREE: 2,
+            rlc.KEY_FOUR: 3,
+            rlc.KEY_FIVE: 4,
+        }
+        key = rlc.GetKeyPressed()
+        self.selection = (
+            hotbar_selection[key] if key in hotbar_selection.keys() else self.selection
+        )
+
+        player.item_in_hand = self.slots[self.selection].item
+
+    def draw(self):
+        # 5 -> MAX_SLOTS_PER_ROW
+        # 100 -> SLOT_SIZE
+        for i in range(len(self.slots)):
+            if i // 5 and not self.ON:
+                break
+            offset = Vec2(1 + i % 5, 1 + i // 5) * 10
+            pos = Vec2(i % 5, i // 5) * 100 + offset
+            rlc.DrawRectangleV(pos(), self.SLOT_SIZE(), rlc.Fade(rlc.BLACK, 0.5))
+            if self.slots[i].item is None:
+                continue
+            elif self.slots[i].item is ItemID.AXE:
+                item_pos = pos + Vec2(50 - 6.25, 5)
+                item_size = self.SLOT_SIZE * Vec2(0.125, 0.9)
+                rlc.DrawRectangleV(
+                    item_pos(),
+                    item_size(),
+                    rlc.DARKBROWN,
+                )
+                rlc.DrawTriangle(
+                    (item_pos + Vec2(50, 0))(),
+                    (item_pos + Vec2(0, 25 * 0.9))(),
+                    (item_pos + Vec2(50, 50 * 0.9))(),
+                    rlc.GRAY,
+                )
+            elif self.slots[i].item is ItemID.FISHING_ROD:
+                item_pos = pos + Vec2(50 - 2.5, 5)
+                item_size = self.SLOT_SIZE * Vec2(0.05, 0.9)
+
+                fishing_rod_body = item_pos
+                fishing_rod_tip = item_pos + Vec2(2.5, 0)
+
+                bobber_pos = fishing_rod_tip + Vec2(5, 20)
+                # draw bobber
+                rlc.DrawCircleV(bobber_pos(), 10, rlc.RED)
+                offset = Vec2(0, -10)
+                rlc.DrawCircleV((bobber_pos + offset)(), 4, rlc.WHITE)
+
+                # draw body
+                rlc.DrawRectangleV(fishing_rod_body(), item_size(), rlc.DARKBROWN)
+                rlc.DrawCircleV(fishing_rod_tip(), 5, rlc.BROWN)
+
+                # draw line
+                rlc.DrawLineEx(
+                    fishing_rod_tip(), (bobber_pos - Vec2(0, 10))(), 2, rlc.BLACK
+                )
+
+        offset = Vec2(1 + self.selection % 5, 1 + self.selection // 5) * 10
+        pos = Vec2(self.selection % 5, self.selection // 5) * 100 + offset
+        rec = rl.Rectangle(int(pos.x), int(pos.y), 100, 100)
+        rlc.DrawRectangleLinesEx(rec, 3, rlc.LIGHTGRAY)
+
+
 class Player:
     def __init__(self, pos):
         self.pos = pos
@@ -342,7 +452,8 @@ class Player:
         self.state = State.MOVING
 
         # inventory
-        self.tool = Tool.AXE
+        self.inventory = Inventory()
+        self.item_in_hand = ItemID.AXE
 
         self.wood = 0
         self.sappling = 0
@@ -355,7 +466,7 @@ class Player:
         self.food = 10
 
         self.wetness_timer = 0
-        self.wetness = 0
+        self.wetness = 10
 
     def move(self, world):
         dx = rlc.IsKeyDown(rlc.KEY_D) - rlc.IsKeyDown(rlc.KEY_A)
@@ -398,23 +509,28 @@ class Player:
         if self.fishing.fish_menu:
             self.fishing.fish_menu.update()
 
+        self.inventory.update(self)
+
         # interract
         # mouse block coordinates
         mpos = rlc.GetScreenToWorld2D(rlc.GetMousePosition(), self.camera)
         W_x = int(max(0, min(world.size.x - 1, mpos.x / BSIZE)))
         W_y = int(max(0, min(world.size.y - 1, mpos.y / BSIZE)))
 
-        if rlc.IsKeyPressed(rlc.KEY_TWO):
-            self.tool = Tool.FISHING_ROD
-        elif rlc.IsKeyPressed(rlc.KEY_ONE):
-            self.tool = Tool.AXE
+        # if rlc.IsKeyPressed(rlc.KEY_TWO):
+        #     self.tool = Tool.FISHING_ROD
+        # elif rlc.IsKeyPressed(rlc.KEY_ONE):
+        #     self.tool = Tool.AXE
 
         if (
             rlc.IsMouseButtonPressed(rlc.MOUSE_BUTTON_LEFT)
             and self.state == State.MOVING
         ):
             # break tree
-            if world.blocks[W_y][W_x].type == Block.Type.TREE and self.tool == Tool.AXE:
+            if (
+                world.blocks[W_y][W_x].type == Block.Type.TREE
+                and self.item_in_hand == ItemID.AXE
+            ):
                 dx = (mpos.x - self.pos.x) ** 2
                 dy = (mpos.y - self.pos.y) ** 2
                 if math.sqrt(dx + dy) < 15:
@@ -426,7 +542,7 @@ class Player:
             # fishing
             elif (
                 world.blocks[W_y][W_x].type == Block.Type.WATER
-                and self.tool == Tool.FISHING_ROD
+                and self.item_in_hand == ItemID.FISHING_ROD
             ):
                 self.state = State.FISHING
                 world.blocks[W_y][W_x].type = Block.Type.BOBBER
@@ -459,7 +575,7 @@ class Player:
         )
 
         # equipped tool
-        if self.tool == Tool.AXE:
+        if self.item_in_hand == ItemID.AXE:
             rlc.DrawRectangleV(
                 Vec2(self.pos.x + 3, self.pos.y - 2)(), Vec2(0.5, 4)(), rlc.DARKBROWN
             )
@@ -469,7 +585,7 @@ class Player:
                 Vec2(self.pos.x + 5, self.pos.y)(),
                 rlc.GRAY,
             )
-        elif self.tool == Tool.FISHING_ROD:
+        elif self.item_in_hand == ItemID.FISHING_ROD:
             self.fishing.draw(self.pos, self.state)
 
     def draw_stats(self):
@@ -483,7 +599,10 @@ class Player:
         rlc.DrawText(text, 10, 10, 50, rlc.WHITE)
 
         # equiped tool tooltip
-        text = ("Equiped Tool: " + self.tool.name).encode()
+        text = (
+            "Equiped Tool: "
+            + (self.item_in_hand.name if self.item_in_hand in ItemID else "PLACEHOLDER")
+        ).encode()
         rlc.DrawRectangleV(
             Vec2(0, 70)(), Vec2(30 * len(text), 70)(), rl.Color(0, 0, 0, 100)
         )
@@ -533,6 +652,8 @@ def main():
         player.draw_stats()
         if player.fishing.fish_menu:
             player.fishing.fish_menu.draw()
+
+        player.inventory.draw()
 
         rlc.EndDrawing()
     rlc.CloseWindow()
