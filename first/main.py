@@ -377,40 +377,31 @@ class Inventory:
     def __init__(self):
         self.slots = [[self.Slot() for _ in range(5)] for _ in range(3)]
         self.selection = 0
-        # temp
-        self.slots[0][0].item = ITEM_DATA[Item.ID.FISHING_ROD]
-        self.slots[0][0].quantity = ITEM_DATA[Item.ID.FISHING_ROD].stack_size
-        self.slots[0][1].item = ITEM_DATA[Item.ID.AXE]
-        self.slots[0][1].quantity = ITEM_DATA[Item.ID.AXE].stack_size
 
         self.ON = False
 
     def add(self, item, q):
         for y in range(3):
             for x in range(5):
-                print(x, y)
                 if q:
                     s = self.slots[y][x]
 
                     if s.item is None:
                         s.item = item
-                        print("entered")
 
                     if s.item.id == item.id:
                         if s.quantity + q > s.item.stack_size:
                             dq = s.item.stack_size - s.quantity
                             q -= dq
                             s.quantity += dq
-                            print("dq", dq, "new q", q)
                         else:
                             s.quantity += q
-                            print("added last q", q, sep=" ")
                             q = 0
-                            print("new q", q)
                 else:
                     break
         if q:
             print("Inventory is full, dropped " + str(q) + " items.")
+            # drop items, requires world to store item list on each block
 
     def update(self, player):
         if rlc.IsKeyPressed(rlc.KEY_I):
@@ -687,7 +678,8 @@ def main():
     world = World()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
-    player.inventory.add(ITEM_DATA[Item.ID.FISHING_ROD], 14)
+    player.inventory.add(ITEM_DATA[Item.ID.FISHING_ROD], 1)
+    player.inventory.add(ITEM_DATA[Item.ID.AXE], 1)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()
