@@ -333,26 +333,37 @@ class FishingManager:
             )
 
 
-class ItemID(Enum):
-    # tools
-    AXE = 1
-    FISHING_ROD = 2
-    # fish
-    SURGEONFISH = 3
-    CLOWNFISH = 4
-    CRAB = 5
-    PUFFERFISH = 6
-    ANCHOVY = 7
-    ANGELFISH = 8
-    BASS = 9
-    CATFISH = 10
-    GOLDFISH = 11
-    TROUT = 12
-    # materials
-    WOOD = 13
-    SAPPLING = 14
-    # furniuture
-    FIRE = 15
+class Item:
+    class ID(Enum):
+        # tools
+        AXE = 1
+        FISHING_ROD = 2
+        # fish
+        SURGEONFISH = 3
+        CLOWNFISH = 4
+        CRAB = 5
+        PUFFERFISH = 6
+        ANCHOVY = 7
+        ANGELFISH = 8
+        BASS = 9
+        CATFISH = 10
+        GOLDFISH = 11
+        TROUT = 12
+        # materials
+        WOOD = 13
+        SAPPLING = 14
+        # furniuture
+        FIRE = 15
+
+    def __init__(self, item_id, stack_size):
+        self.id = item_id
+        self.stack_size = stack_size
+
+
+ITEM_DATA = {
+    Item.ID.AXE: Item(Item.ID.AXE, 1),
+    Item.ID.FISHING_ROD: Item(Item.ID.FISHING_ROD, 1),
+}
 
 
 class Inventory:
@@ -364,13 +375,42 @@ class Inventory:
     SLOT_SIZE = Vec2(100, 100)
 
     def __init__(self):
-        self.slots = [self.Slot() for _ in range(15)]
-        # temp
-        self.slots[1].item = ItemID.AXE
-        self.slots[0].item = ItemID.FISHING_ROD
+        self.slots = [[self.Slot() for _ in range(5)] for _ in range(3)]
         self.selection = 0
+        # temp
+        self.slots[0][0].item = ITEM_DATA[Item.ID.FISHING_ROD]
+        self.slots[0][0].quantity = ITEM_DATA[Item.ID.FISHING_ROD].stack_size
+        self.slots[0][1].item = ITEM_DATA[Item.ID.AXE]
+        self.slots[0][1].quantity = ITEM_DATA[Item.ID.AXE].stack_size
 
         self.ON = False
+
+    def add(self, item, q):
+        for y in range(3):
+            for x in range(5):
+                print(x, y)
+                if q:
+                    s = self.slots[y][x]
+
+                    if s.item is None:
+                        s.item = item
+                        print("entered")
+
+                    if s.item.id == item.id:
+                        if s.quantity + q > s.item.stack_size:
+                            dq = s.item.stack_size - s.quantity
+                            q -= dq
+                            s.quantity += dq
+                            print("dq", dq, "new q", q)
+                        else:
+                            s.quantity += q
+                            print("added last q", q, sep=" ")
+                            q = 0
+                            print("new q", q)
+                else:
+                    break
+        if q:
+            print("Inventory is full, dropped " + str(q) + " items.")
 
     def update(self, player):
         if rlc.IsKeyPressed(rlc.KEY_I):
@@ -388,54 +428,55 @@ class Inventory:
             hotbar_selection[key] if key in hotbar_selection.keys() else self.selection
         )
 
-        player.item_in_hand = self.slots[self.selection].item
+        player.item_in_hand = self.slots[0][self.selection].item
 
     def draw(self):
         # 5 -> MAX_SLOTS_PER_ROW
         # 100 -> SLOT_SIZE
-        for i in range(len(self.slots)):
-            if i // 5 and not self.ON:
-                break
-            offset = Vec2(1 + i % 5, 1 + i // 5) * 10
-            pos = Vec2(i % 5, i // 5) * 100 + offset
-            rlc.DrawRectangleV(pos(), self.SLOT_SIZE(), rlc.Fade(rlc.BLACK, 0.5))
-            if self.slots[i].item is None:
-                continue
-            elif self.slots[i].item is ItemID.AXE:
-                item_pos = pos + Vec2(50 - 6.25, 5)
-                item_size = self.SLOT_SIZE * Vec2(0.125, 0.9)
-                rlc.DrawRectangleV(
-                    item_pos(),
-                    item_size(),
-                    rlc.DARKBROWN,
-                )
-                rlc.DrawTriangle(
-                    (item_pos + Vec2(50, 0))(),
-                    (item_pos + Vec2(0, 25 * 0.9))(),
-                    (item_pos + Vec2(50, 50 * 0.9))(),
-                    rlc.GRAY,
-                )
-            elif self.slots[i].item is ItemID.FISHING_ROD:
-                item_pos = pos + Vec2(50 - 2.5, 5)
-                item_size = self.SLOT_SIZE * Vec2(0.05, 0.9)
+        for x in range(5):
+            for y in range(3):
+                if y >= 1 and not self.ON:
+                    break
+                offset = Vec2(1 + x, 1 + y) * 10
+                pos = Vec2(x, y) * 100 + offset
+                rlc.DrawRectangleV(pos(), self.SLOT_SIZE(), rlc.Fade(rlc.BLACK, 0.5))
+                if self.slots[y][x].item is None:
+                    continue
+                elif self.slots[y][x].item.id is Item.ID.AXE:
+                    item_pos = pos + Vec2(50 - 6.25, 5)
+                    item_size = self.SLOT_SIZE * Vec2(0.125, 0.9)
+                    rlc.DrawRectangleV(
+                        item_pos(),
+                        item_size(),
+                        rlc.DARKBROWN,
+                    )
+                    rlc.DrawTriangle(
+                        (item_pos + Vec2(50, 0))(),
+                        (item_pos + Vec2(0, 25 * 0.9))(),
+                        (item_pos + Vec2(50, 50 * 0.9))(),
+                        rlc.GRAY,
+                    )
+                elif self.slots[y][x].item.id is Item.ID.FISHING_ROD:
+                    item_pos = pos + Vec2(50 - 2.5, 5)
+                    item_size = self.SLOT_SIZE * Vec2(0.05, 0.9)
 
-                fishing_rod_body = item_pos
-                fishing_rod_tip = item_pos + Vec2(2.5, 0)
+                    fishing_rod_body = item_pos
+                    fishing_rod_tip = item_pos + Vec2(2.5, 0)
 
-                bobber_pos = fishing_rod_tip + Vec2(5, 20)
-                # draw bobber
-                rlc.DrawCircleV(bobber_pos(), 10, rlc.RED)
-                offset = Vec2(0, -10)
-                rlc.DrawCircleV((bobber_pos + offset)(), 4, rlc.WHITE)
+                    bobber_pos = fishing_rod_tip + Vec2(5, 20)
+                    # draw bobber
+                    rlc.DrawCircleV(bobber_pos(), 10, rlc.RED)
+                    offset = Vec2(0, -10)
+                    rlc.DrawCircleV((bobber_pos + offset)(), 4, rlc.WHITE)
 
-                # draw body
-                rlc.DrawRectangleV(fishing_rod_body(), item_size(), rlc.DARKBROWN)
-                rlc.DrawCircleV(fishing_rod_tip(), 5, rlc.BROWN)
+                    # draw body
+                    rlc.DrawRectangleV(fishing_rod_body(), item_size(), rlc.DARKBROWN)
+                    rlc.DrawCircleV(fishing_rod_tip(), 5, rlc.BROWN)
 
-                # draw line
-                rlc.DrawLineEx(
-                    fishing_rod_tip(), (bobber_pos - Vec2(0, 10))(), 2, rlc.BLACK
-                )
+                    # draw line
+                    rlc.DrawLineEx(
+                        fishing_rod_tip(), (bobber_pos - Vec2(0, 10))(), 2, rlc.BLACK
+                    )
 
         offset = Vec2(1 + self.selection % 5, 1 + self.selection // 5) * 10
         pos = Vec2(self.selection % 5, self.selection // 5) * 100 + offset
@@ -453,7 +494,7 @@ class Player:
 
         # inventory
         self.inventory = Inventory()
-        self.item_in_hand = ItemID.AXE
+        self.item_in_hand = ITEM_DATA[Item.ID.AXE]
 
         self.wood = 0
         self.sappling = 0
@@ -529,7 +570,7 @@ class Player:
             # break tree
             if (
                 world.blocks[W_y][W_x].type == Block.Type.TREE
-                and self.item_in_hand == ItemID.AXE
+                and self.item_in_hand.id == Item.ID.AXE
             ):
                 dx = (mpos.x - self.pos.x) ** 2
                 dy = (mpos.y - self.pos.y) ** 2
@@ -542,7 +583,7 @@ class Player:
             # fishing
             elif (
                 world.blocks[W_y][W_x].type == Block.Type.WATER
-                and self.item_in_hand == ItemID.FISHING_ROD
+                and self.item_in_hand.id == Item.ID.FISHING_ROD
             ):
                 self.state = State.FISHING
                 world.blocks[W_y][W_x].type = Block.Type.BOBBER
@@ -575,18 +616,21 @@ class Player:
         )
 
         # equipped tool
-        if self.item_in_hand == ItemID.AXE:
-            rlc.DrawRectangleV(
-                Vec2(self.pos.x + 3, self.pos.y - 2)(), Vec2(0.5, 4)(), rlc.DARKBROWN
-            )
-            rlc.DrawTriangle(
-                Vec2(self.pos.x + 5, self.pos.y - 2)(),
-                Vec2(self.pos.x + 3, self.pos.y - 1)(),
-                Vec2(self.pos.x + 5, self.pos.y)(),
-                rlc.GRAY,
-            )
-        elif self.item_in_hand == ItemID.FISHING_ROD:
-            self.fishing.draw(self.pos, self.state)
+        if self.item_in_hand is not None:
+            if self.item_in_hand.id == Item.ID.AXE:
+                rlc.DrawRectangleV(
+                    Vec2(self.pos.x + 3, self.pos.y - 2)(),
+                    Vec2(0.5, 4)(),
+                    rlc.DARKBROWN,
+                )
+                rlc.DrawTriangle(
+                    Vec2(self.pos.x + 5, self.pos.y - 2)(),
+                    Vec2(self.pos.x + 3, self.pos.y - 1)(),
+                    Vec2(self.pos.x + 5, self.pos.y)(),
+                    rlc.GRAY,
+                )
+            elif self.item_in_hand.id == Item.ID.FISHING_ROD:
+                self.fishing.draw(self.pos, self.state)
 
     def draw_stats(self):
         # items quantity
@@ -601,7 +645,11 @@ class Player:
         # equiped tool tooltip
         text = (
             "Equiped Tool: "
-            + (self.item_in_hand.name if self.item_in_hand in ItemID else "PLACEHOLDER")
+            + (
+                self.item_in_hand.id.name
+                if self.item_in_hand.id in Item.ID
+                else "PLACEHOLDER"
+            )
         ).encode()
         rlc.DrawRectangleV(
             Vec2(0, 70)(), Vec2(30 * len(text), 70)(), rl.Color(0, 0, 0, 100)
@@ -639,6 +687,7 @@ def main():
     world = World()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
+    player.inventory.add(ITEM_DATA[Item.ID.FISHING_ROD], 14)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()
@@ -649,7 +698,7 @@ def main():
         player.draw()
         rlc.EndMode2D()
 
-        player.draw_stats()
+        # player.draw_stats()
         if player.fishing.fish_menu:
             player.fishing.fish_menu.draw()
 
