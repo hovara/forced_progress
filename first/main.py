@@ -380,7 +380,7 @@ class Inventory:
 
         self.ON = False
 
-    def add(self, item, q):
+    def pickup(self, item, q):
         for y in range(3):
             for x in range(5):
                 if q:
@@ -678,8 +678,8 @@ def main():
     world = World()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
-    player.inventory.add(ITEM_DATA[Item.ID.FISHING_ROD], 1)
-    player.inventory.add(ITEM_DATA[Item.ID.AXE], 1)
+    player.inventory.pickup(ITEM_DATA[Item.ID.FISHING_ROD], 1)
+    player.inventory.pickup(ITEM_DATA[Item.ID.AXE], 1)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()

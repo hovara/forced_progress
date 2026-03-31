@@ -22,3 +22,7 @@
 - [ ] Implement rain visual effects
   - [ ] Update wettness logic to increase only when raining
 - [ ] Implement inventory system
+  - [x] Rename Inventory.add() to Inventory.pickup()
+  - [ ] Implement Inventory.remove(slot, quantity)
+  - [ ] Implement Inventory.set(slot, item, quantity)
+  - [ ] Implement Inventory.replace(slot1, slot2)
