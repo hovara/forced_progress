@@ -372,6 +372,11 @@ class Inventory:
             self.item = item
             self.quantity = quantity
 
+        def copy(self):
+            return Inventory.Slot(
+                Item(self.item.id, int(self.item.stack_size)), self.quantity
+            )
+
     SLOT_SIZE = Vec2(100, 100)
 
     def __init__(self):
@@ -402,6 +407,17 @@ class Inventory:
         if q:
             print("Inventory is full, dropped " + str(q) + " items.")
             # drop items, requires world to store item list on each block
+
+    def remove(self, slot, q):
+        x, y = int(slot.x), int(slot.y)
+        if self.slots[y][x].item is not None:
+            if q >= self.slots[y][x].quantity:
+                old_slot = self.slots[y][x].copy()
+                self.slots[y][x] = Inventory.Slot()
+                return old_slot
+            else:
+                self.slots[slot.y][slot.x].quantity -= q
+                return Inventory.Slot(self.slots[y][x].item, q)
 
     def update(self, player):
         if rlc.IsKeyPressed(rlc.KEY_I):
@@ -680,6 +696,8 @@ def main():
     player = Player(Vec2(130, 130))
     player.inventory.pickup(ITEM_DATA[Item.ID.FISHING_ROD], 1)
     player.inventory.pickup(ITEM_DATA[Item.ID.AXE], 1)
+    player.inventory.pickup(ITEM_DATA[Item.ID.AXE], 1)
+    player.inventory.remove(Vec2(2, 0), 2)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()
