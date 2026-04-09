@@ -8,8 +8,6 @@
   - [x] Implement fishing bobber
     - [x] Implement the bobber drawing
     - [x] Implement bobber animation
-  - [x] Implement fish enum
-    - [x] At least three fish types
   - [ ] Implement water depth mechanic
     - [ ] Implement fish rarity based on water depth
   - [x] Move the current "fishing system" after the "fish caught" action
@@ -23,6 +21,8 @@
   - [ ] Update wettness logic to increase only when raining
 - [ ] Implement inventory system
   - [x] Rename Inventory.add() to Inventory.pickup()
-  - [ ] Implement Inventory.remove(slot, quantity)
-  - [ ] Implement Inventory.set(slot, item, quantity)
+  - [x] Implement Inventory.remove(slot_pos, quantity)
+  - [x] Implement Inventory.add(slot_pos, item, quantity)
   - [ ] Implement Inventory.replace(slot1, slot2)
+- [x] Implement item sprite drawing
+- [x] Rework ITEM_DATA collection

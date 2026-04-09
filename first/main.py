@@ -58,19 +58,6 @@ class State(Enum):
     FISHING = 2
 
 
-class FishType(Enum):
-    SURGEONFISH = 0
-    CLOWNFISH = 1
-    CRAB = 2
-    PUFFERFISH = 3
-    ANCHOVY = 4
-    ANGELFISH = 5
-    BASS = 6
-    CATFISH = 7
-    GOLDFISH = 8
-    TROUT = 9
-
-
 class Block:
     class Type(Enum):
         SAND = 1
@@ -335,34 +322,70 @@ class FishingManager:
 
 class Item:
     class ID(Enum):
-        # tools
-        AXE = 1
-        FISHING_ROD = 2
         # fish
-        SURGEONFISH = 3
-        CLOWNFISH = 4
-        CRAB = 5
-        PUFFERFISH = 6
-        ANCHOVY = 7
-        ANGELFISH = 8
-        BASS = 9
+        SURGEONFISH = 1
+        CLOWNFISH = 2
+        CRAB = 3
+        PUFFERFISH = 4
+        ANCHOVY = 5
+        ANGELFISH = 6
+        BASS = 7
+        GOLDFISH = 8
+        TROUT = 9
         CATFISH = 10
-        GOLDFISH = 11
-        TROUT = 12
+        # tools
+        AXE = 11
+        FISHING_ROD = 12
+        # food
+        APPLE = 13
+        COOKED_FISH = 14
         # materials
-        WOOD = 13
-        SAPPLING = 14
+        WOOD = 15
+        STICK = 16
+        SAPPLING = 17
+        STONE = 18
         # furniuture
-        FIRE = 15
+        FIRE = 19
 
-    def __init__(self, item_id, stack_size):
-        self.id = item_id
-        self.stack_size = stack_size
+    atlas = None
+
+    @classmethod
+    def load_atlas(cls):
+        if cls.atlas is None:
+            cls.atlas = rlc.LoadTexture(b"./assets/items.png")
+
+    @classmethod
+    def unload_atlas(cls):
+        if cls.atlas is not None:
+            rlc.UnloadTexture(cls.atlas)
+            cls.atlas = None
+
+    def __init__(self, item_id):
+        self.id = ITEM_DATA[item_id]["id"]
+        self.stack_size = ITEM_DATA[item_id]["stack_size"]
+
+    def draw(self, pos):
+        # rlc.DrawTextureRec(
+        #     self.atlas,
+        #     rl.Rectangle(int(self.id.value - 1) * 16, 0, 16, 16),
+        #     pos(),
+        #     rlc.WHITE,
+        # )
+        rlc.DrawTexturePro(
+            self.atlas,
+            rl.Rectangle(int(self.id.value - 1) * 16, 0, 16, 16),
+            rl.Rectangle(pos.x, pos.y, 96, 96),
+            Vec2(0, 0)(),
+            0,
+            rlc.WHITE,
+        )
 
 
 ITEM_DATA = {
-    Item.ID.AXE: Item(Item.ID.AXE, 1),
-    Item.ID.FISHING_ROD: Item(Item.ID.FISHING_ROD, 1),
+    Item.ID.AXE: {"id": Item.ID.AXE, "stack_size": 1},
+    Item.ID.FISHING_ROD: {"id": Item.ID.FISHING_ROD, "stack_size": 1},
+    Item.ID.WOOD: {"id": Item.ID.WOOD, "stack_size": 64},
+    Item.ID.SAPPLING: {"id": Item.ID.SAPPLING, "stack_size": 64},
 }
 
 
@@ -373,9 +396,7 @@ class Inventory:
             self.quantity = quantity
 
         def copy(self):
-            return Inventory.Slot(
-                Item(self.item.id, int(self.item.stack_size)), self.quantity
-            )
+            return Inventory.Slot(Item(self.item.id), self.quantity)
 
     SLOT_SIZE = Vec2(100, 100)
 
@@ -408,16 +429,32 @@ class Inventory:
             print("Inventory is full, dropped " + str(q) + " items.")
             # drop items, requires world to store item list on each block
 
-    def remove(self, slot, q):
-        x, y = int(slot.x), int(slot.y)
+    def remove(self, slot_pos, q):
+        x, y = int(slot_pos.x), int(slot_pos.y)
         if self.slots[y][x].item is not None:
             if q >= self.slots[y][x].quantity:
                 old_slot = self.slots[y][x].copy()
                 self.slots[y][x] = Inventory.Slot()
+                # put item in cursor
                 return old_slot
             else:
-                self.slots[slot.y][slot.x].quantity -= q
-                return Inventory.Slot(self.slots[y][x].item, q)
+                self.slots[y][x].quantity -= q
+                # put item in cursor
+                return Inventory.Slot(Item(self.slots[y][x].item.id), q)
+
+    def add(self, slot_pos, item, q):
+        x, y = int(slot_pos.x), int(slot_pos.y)
+        s = self.slots[y][x]
+        if s.item is None:
+            s.item = item
+            s.quantity = q
+        elif s.item.id == item.id:
+            if s.quantity + q >= s.item.stack_size:
+                dq = s.item.stack_size - s.quantity
+                q -= dq
+                s.quantity += dq
+                # put item excess back in cursor
+                return Inventory.Slot(Item(s.item.id), q)
 
     def update(self, player):
         if rlc.IsKeyPressed(rlc.KEY_I):
@@ -449,41 +486,52 @@ class Inventory:
                 rlc.DrawRectangleV(pos(), self.SLOT_SIZE(), rlc.Fade(rlc.BLACK, 0.5))
                 if self.slots[y][x].item is None:
                     continue
-                elif self.slots[y][x].item.id is Item.ID.AXE:
-                    item_pos = pos + Vec2(50 - 6.25, 5)
-                    item_size = self.SLOT_SIZE * Vec2(0.125, 0.9)
-                    rlc.DrawRectangleV(
-                        item_pos(),
-                        item_size(),
-                        rlc.DARKBROWN,
-                    )
-                    rlc.DrawTriangle(
-                        (item_pos + Vec2(50, 0))(),
-                        (item_pos + Vec2(0, 25 * 0.9))(),
-                        (item_pos + Vec2(50, 50 * 0.9))(),
-                        rlc.GRAY,
-                    )
-                elif self.slots[y][x].item.id is Item.ID.FISHING_ROD:
-                    item_pos = pos + Vec2(50 - 2.5, 5)
-                    item_size = self.SLOT_SIZE * Vec2(0.05, 0.9)
+                else:
+                    self.slots[y][x].item.draw(pos + Vec2(2, 2))
+                    if self.slots[y][x].item.stack_size > 1:
+                        rlc.DrawText(
+                            str(self.slots[y][x].quantity).encode("utf-8"),
+                            int(pos.x + 60),
+                            int(pos.y + 70),
+                            32,
+                            rlc.WHITE,
+                        )
 
-                    fishing_rod_body = item_pos
-                    fishing_rod_tip = item_pos + Vec2(2.5, 0)
-
-                    bobber_pos = fishing_rod_tip + Vec2(5, 20)
-                    # draw bobber
-                    rlc.DrawCircleV(bobber_pos(), 10, rlc.RED)
-                    offset = Vec2(0, -10)
-                    rlc.DrawCircleV((bobber_pos + offset)(), 4, rlc.WHITE)
-
-                    # draw body
-                    rlc.DrawRectangleV(fishing_rod_body(), item_size(), rlc.DARKBROWN)
-                    rlc.DrawCircleV(fishing_rod_tip(), 5, rlc.BROWN)
-
-                    # draw line
-                    rlc.DrawLineEx(
-                        fishing_rod_tip(), (bobber_pos - Vec2(0, 10))(), 2, rlc.BLACK
-                    )
+                # elif self.slots[y][x].item.id is Item.ID.AXE:
+                #     item_pos = pos + Vec2(50 - 6.25, 5)
+                #     item_size = self.SLOT_SIZE * Vec2(0.125, 0.9)
+                #     rlc.DrawRectangleV(
+                #         item_pos(),
+                #         item_size(),
+                #         rlc.DARKBROWN,
+                #     )
+                #     rlc.DrawTriangle(
+                #         (item_pos + Vec2(50, 0))(),
+                #         (item_pos + Vec2(0, 25 * 0.9))(),
+                #         (item_pos + Vec2(50, 50 * 0.9))(),
+                #         rlc.GRAY,
+                #     )
+                # elif self.slots[y][x].item.id is Item.ID.FISHING_ROD:
+                #     item_pos = pos + Vec2(50 - 2.5, 5)
+                #     item_size = self.SLOT_SIZE * Vec2(0.05, 0.9)
+                #
+                #     fishing_rod_body = item_pos
+                #     fishing_rod_tip = item_pos + Vec2(2.5, 0)
+                #
+                #     bobber_pos = fishing_rod_tip + Vec2(5, 20)
+                #     # draw bobber
+                #     rlc.DrawCircleV(bobber_pos(), 10, rlc.RED)
+                #     offset = Vec2(0, -10)
+                #     rlc.DrawCircleV((bobber_pos + offset)(), 4, rlc.WHITE)
+                #
+                #     # draw body
+                #     rlc.DrawRectangleV(fishing_rod_body(), item_size(), rlc.DARKBROWN)
+                #     rlc.DrawCircleV(fishing_rod_tip(), 5, rlc.BROWN)
+                #
+                #     # draw line
+                #     rlc.DrawLineEx(
+                #         fishing_rod_tip(), (bobber_pos - Vec2(0, 10))(), 2, rlc.BLACK
+                #     )
 
         offset = Vec2(1 + self.selection % 5, 1 + self.selection // 5) * 10
         pos = Vec2(self.selection % 5, self.selection // 5) * 100 + offset
@@ -501,7 +549,7 @@ class Player:
 
         # inventory
         self.inventory = Inventory()
-        self.item_in_hand = ITEM_DATA[Item.ID.AXE]
+        self.item_in_hand = None
 
         self.wood = 0
         self.sappling = 0
@@ -583,8 +631,9 @@ class Player:
                 dy = (mpos.y - self.pos.y) ** 2
                 if math.sqrt(dx + dy) < 15:
                     world.blocks[W_y][W_x].type = Block.Type.SAND
-                    self.wood += 1
-                    self.sappling += 1 if random.uniform(0, 1) <= 0.33 else 0
+                    self.inventory.pickup(Item(Item.ID.WOOD), random.randint(1, 5))
+                    if random.uniform(0, 1) <= 0.33:
+                        self.inventory.pickup(Item(Item.ID.SAPPLING), 1)
                 # else:
                 #     return "You are too far from the tree!"
             # fishing
@@ -691,13 +740,12 @@ class Player:
 
 def main():
     rlc.InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, b"First")
+    Item.load_atlas()
     world = World()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
-    player.inventory.pickup(ITEM_DATA[Item.ID.FISHING_ROD], 1)
-    player.inventory.pickup(ITEM_DATA[Item.ID.AXE], 1)
-    player.inventory.pickup(ITEM_DATA[Item.ID.AXE], 1)
-    player.inventory.remove(Vec2(2, 0), 2)
+    player.inventory.pickup(Item(Item.ID.FISHING_ROD), 1)
+    player.inventory.pickup(Item(Item.ID.AXE), 1)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()
@@ -715,6 +763,7 @@ def main():
         player.inventory.draw()
 
         rlc.EndDrawing()
+    Item.unload_atlas()
     rlc.CloseWindow()
 
 
