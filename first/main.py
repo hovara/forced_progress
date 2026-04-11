@@ -364,7 +364,7 @@ class Item:
         self.id = ITEM_DATA[item_id]["id"]
         self.stack_size = ITEM_DATA[item_id]["stack_size"]
 
-    def draw(self, pos):
+    def draw(self, pos, scale=6):
         # rlc.DrawTextureRec(
         #     self.atlas,
         #     rl.Rectangle(int(self.id.value - 1) * 16, 0, 16, 16),
@@ -374,7 +374,7 @@ class Item:
         rlc.DrawTexturePro(
             self.atlas,
             rl.Rectangle(int(self.id.value - 1) * 16, 0, 16, 16),
-            rl.Rectangle(pos.x, pos.y, 96, 96),
+            rl.Rectangle(pos.x, pos.y, 16 * scale, 16 * scale),
             Vec2(0, 0)(),
             0,
             rlc.WHITE,
@@ -382,10 +382,25 @@ class Item:
 
 
 ITEM_DATA = {
+    Item.ID.SURGEONFISH: {"id": Item.ID.SURGEONFISH, "stack_size": 64},
+    Item.ID.CLOWNFISH: {"id": Item.ID.CLOWNFISH, "stack_size": 64},
+    Item.ID.CRAB: {"id": Item.ID.CRAB, "stack_size": 64},
+    Item.ID.PUFFERFISH: {"id": Item.ID.PUFFERFISH, "stack_size": 64},
+    Item.ID.ANCHOVY: {"id": Item.ID.ANCHOVY, "stack_size": 64},
+    Item.ID.ANGELFISH: {"id": Item.ID.ANGELFISH, "stack_size": 64},
+    Item.ID.BASS: {"id": Item.ID.BASS, "stack_size": 64},
+    Item.ID.GOLDFISH: {"id": Item.ID.GOLDFISH, "stack_size": 64},
+    Item.ID.TROUT: {"id": Item.ID.TROUT, "stack_size": 64},
+    Item.ID.CATFISH: {"id": Item.ID.CATFISH, "stack_size": 64},
     Item.ID.AXE: {"id": Item.ID.AXE, "stack_size": 1},
     Item.ID.FISHING_ROD: {"id": Item.ID.FISHING_ROD, "stack_size": 1},
+    Item.ID.APPLE: {"id": Item.ID.APPLE, "stack_size": 64},
+    Item.ID.COOKED_FISH: {"id": Item.ID.COOKED_FISH, "stack_size": 64},
     Item.ID.WOOD: {"id": Item.ID.WOOD, "stack_size": 64},
+    Item.ID.STICK: {"id": Item.ID.STICK, "stack_size": 64},
     Item.ID.SAPPLING: {"id": Item.ID.SAPPLING, "stack_size": 64},
+    Item.ID.STONE: {"id": Item.ID.STONE, "stack_size": 64},
+    Item.ID.FIRE: {"id": Item.ID.FIRE, "stack_size": 64},
 }
 
 
@@ -401,13 +416,13 @@ class Inventory:
     SLOT_SIZE = Vec2(100, 100)
 
     def __init__(self):
-        self.slots = [[self.Slot() for _ in range(5)] for _ in range(3)]
+        self.slots = [[self.Slot() for _ in range(5)] for _ in range(4)]
         self.selection = 0
 
         self.ON = False
 
     def pickup(self, item, q):
-        for y in range(3):
+        for y in range(4):
             for x in range(5):
                 if q:
                     s = self.slots[y][x]
@@ -478,7 +493,7 @@ class Inventory:
         # 5 -> MAX_SLOTS_PER_ROW
         # 100 -> SLOT_SIZE
         for x in range(5):
-            for y in range(3):
+            for y in range(4):
                 if y >= 1 and not self.ON:
                     break
                 offset = Vec2(1 + x, 1 + y) * 10
@@ -687,6 +702,8 @@ class Player:
                 )
             elif self.item_in_hand.id == Item.ID.FISHING_ROD:
                 self.fishing.draw(self.pos, self.state)
+            else:
+                self.item_in_hand.draw(self.pos - Vec2(0, 2), scale=0.2)
 
     def draw_stats(self):
         # items quantity
@@ -744,8 +761,10 @@ def main():
     world = World()
     # player = Player(Vec2(world.size.x // 2 * BSIZE, world.size.y // 2 * BSIZE))
     player = Player(Vec2(130, 130))
-    player.inventory.pickup(Item(Item.ID.FISHING_ROD), 1)
-    player.inventory.pickup(Item(Item.ID.AXE), 1)
+    # player.inventory.pickup(Item(Item.ID.FISHING_ROD), 1)
+    # player.inventory.pickup(Item(Item.ID.AXE), 1)
+    for k in ITEM_DATA.keys():
+        player.inventory.pickup(Item(k), 1)
     while not rlc.WindowShouldClose():
         player.update(world)
         rlc.BeginDrawing()
